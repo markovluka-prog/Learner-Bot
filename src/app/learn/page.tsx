@@ -16,6 +16,7 @@ interface Section {
 interface Practice {
   question: string;
   hint: string;
+  answer?: string;
 }
 
 interface LearnerContent {
@@ -31,6 +32,7 @@ export default function LearnPage() {
   const [content, setContent] = useState<LearnerContent | null>(null);
   const [topic, setTopic] = useState("");
   const [openHints, setOpenHints] = useState<Set<number>>(new Set());
+  const [openAnswers, setOpenAnswers] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const raw = sessionStorage.getItem("learner-content");
@@ -42,6 +44,14 @@ export default function LearnPage() {
 
   function toggleHint(i: number) {
     setOpenHints((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  }
+
+  function toggleAnswer(i: number) {
+    setOpenAnswers((prev) => {
       const next = new Set(prev);
       next.has(i) ? next.delete(i) : next.add(i);
       return next;
@@ -199,23 +209,40 @@ export default function LearnPage() {
 
       {/* Practice */}
       <div className="mt-14 bg-green-50 rounded-2xl p-8 border border-green-200">
-        <h2 className="text-2xl font-bold mb-6">Practice &amp; Exercises</h2>
-        <div className="space-y-6">
+        <h2 className="text-2xl font-bold mb-6">Практика и упражнения</h2>
+        <div className="space-y-8">
           {content.practice.map((p, i) => (
             <div key={i} className="space-y-2">
               <p className="font-medium text-base">
                 {i + 1}. {p.question}
               </p>
-              <button
-                onClick={() => toggleHint(i)}
-                className="text-sm text-green-700 underline hover:text-green-900"
-              >
-                {openHints.has(i) ? "Hide hint" : "Show hint"}
-              </button>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => toggleHint(i)}
+                  className="text-sm text-green-700 underline hover:text-green-900"
+                >
+                  {openHints.has(i) ? "Скрыть подсказку" : "Подсказка"}
+                </button>
+                {p.answer && (
+                  <button
+                    type="button"
+                    onClick={() => toggleAnswer(i)}
+                    className="text-sm text-blue-700 underline hover:text-blue-900"
+                  >
+                    {openAnswers.has(i) ? "Скрыть ответ" : "Показать ответ"}
+                  </button>
+                )}
+              </div>
               {openHints.has(i) && (
                 <p className="text-sm text-gray-600 italic pl-4 border-l-2 border-green-300">
                   {p.hint}
                 </p>
+              )}
+              {openAnswers.has(i) && p.answer && (
+                <div className="text-sm text-gray-800 pl-4 border-l-2 border-blue-300 bg-blue-50 py-2 pr-3 rounded-r-lg">
+                  {p.answer}
+                </div>
               )}
             </div>
           ))}
