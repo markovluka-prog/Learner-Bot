@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const MermaidDiagram = dynamic(() => import("@/components/MermaidDiagram"), { ssr: false });
+const Chat = dynamic(() => import("@/components/Chat"), { ssr: false });
 
 interface Section {
   heading: string;
@@ -45,6 +46,23 @@ export default function LearnPage() {
       next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
+  }
+
+  async function exportToEpub() {
+    if (!content) return;
+    const res = await fetch("/api/epub", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(content),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${content.title.replace(/\s+/g, "-").toLowerCase()}.epub`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function exportToHtml() {
@@ -132,18 +150,24 @@ export default function LearnPage() {
           <p className="text-sm text-gray-400 mb-1">{topic}</p>
           <h1 className="text-4xl font-bold leading-tight">{content.title}</h1>
         </div>
-        <div className="flex gap-2 shrink-0 mt-1">
+        <div className="flex gap-2 shrink-0 mt-1 flex-wrap justify-end">
           <button
             onClick={() => router.push("/")}
             className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
           >
-            ← New topic
+            ← Новая тема
+          </button>
+          <button
+            onClick={exportToEpub}
+            className="px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition"
+          >
+            Скачать EPUB
           </button>
           <button
             onClick={exportToHtml}
-            className="px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition"
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
           >
-            Export HTML
+            Скачать HTML
           </button>
         </div>
       </div>
@@ -200,7 +224,7 @@ export default function LearnPage() {
 
       {/* Summary */}
       <div className="mt-8 bg-blue-50 rounded-2xl p-8 border border-blue-200">
-        <h2 className="text-2xl font-bold mb-4">Key Takeaways</h2>
+        <h2 className="text-2xl font-bold mb-4">Ключевые выводы</h2>
         <ul className="space-y-2">
           {content.summary.split("\n").filter(Boolean).map((line, i) => (
             <li key={i} className="flex gap-2 text-base">
@@ -211,19 +235,31 @@ export default function LearnPage() {
         </ul>
       </div>
 
+      {/* Chat */}
+      <Chat
+        topic={content.title}
+        context={`${content.description} Разделы: ${content.sections.map(s => s.heading).join(", ")}.`}
+      />
+
       {/* Footer actions */}
-      <div className="mt-10 flex justify-center gap-4">
+      <div className="mt-10 flex justify-center gap-3 flex-wrap">
         <button
           onClick={() => router.push("/")}
           className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-base"
         >
-          ← Learn something else
+          ← Изучить другое
+        </button>
+        <button
+          onClick={exportToEpub}
+          className="px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-700 transition text-base"
+        >
+          Скачать EPUB для Kindle
         </button>
         <button
           onClick={exportToHtml}
-          className="px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-700 transition text-base"
+          className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-base"
         >
-          Export for Kindle (HTML)
+          Скачать HTML
         </button>
       </div>
     </main>
