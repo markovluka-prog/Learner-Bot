@@ -15,6 +15,7 @@ export default function Home() {
   const [loadingMsg, setLoadingMsg] = useState("");
   const [progress, setProgress] = useState(0);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function startProgress(durationMs: number) {
     setProgress(0);
@@ -39,7 +40,10 @@ export default function Home() {
 
   async function handleTopicSubmit(e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) {
     e?.preventDefault();
-    if (!topic.trim()) return;
+    // Читаем значение напрямую из DOM на случай если React state не обновился (автозаполнение)
+    const value = inputRef.current?.value ?? topic;
+    if (!value.trim()) return;
+    if (value !== topic) setTopic(value);
     setError("");
     setLoadingMsg("Формулирую уточняющие вопросы...");
     setStep("loading");
@@ -49,7 +53,7 @@ export default function Home() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topic.trim() }),
+        body: JSON.stringify({ topic: value.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to get questions");
@@ -171,11 +175,12 @@ export default function Home() {
 
         <div className="space-y-4">
           <input
+            ref={inputRef}
             type="text"
             autoComplete="off"
             className="w-full border-2 border-gray-300 rounded-xl px-5 py-4 text-lg focus:outline-none focus:border-gray-600 transition"
             placeholder="Например: интегралы, TCP/IP, стоицизм..."
-            value={topic}
+            defaultValue={topic}
             onChange={(e) => setTopic(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleTopicSubmit(e)}
           />
