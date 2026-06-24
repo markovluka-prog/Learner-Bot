@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { askQuestion, ChatMessage } from "@/lib/ai";
 
-interface Message {
-  role: "user" | "assistant";
-  text: string;
-}
+type Message = ChatMessage;
 
 interface Props {
   topic: string;
@@ -31,13 +29,8 @@ export default function Chat({ topic, context }: Props) {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, topic, context, history: messages }),
-      });
-      const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", text: data.answer ?? "Не могу ответить." }]);
+      const answer = await askQuestion(q, topic, context, messages);
+      setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", text: "Ошибка. Попробуй ещё раз." }]);
     } finally {

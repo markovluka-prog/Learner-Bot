@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import { getQuestions, generateContent } from "@/lib/ai";
 
 const MermaidDiagram = dynamic(() => import("@/components/MermaidDiagram"), { ssr: false });
 const Chat = dynamic(() => import("@/components/Chat"), { ssr: false });
@@ -92,16 +93,10 @@ export default function Home() {
     startProgress(6000);
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: value.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Ошибка");
+      const qs = await getQuestions(value.trim());
       finishProgress();
-      setQuestions(data.questions);
-      setAnswers(Array(data.questions.length).fill(""));
+      setQuestions(qs);
+      setAnswers(Array(qs.length).fill(""));
       setStep("questions");
     } catch (err) {
       finishProgress();
@@ -118,13 +113,7 @@ export default function Home() {
     startProgress(28000);
 
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, questions, answers }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Ошибка генерации");
+      const data = await generateContent(topic, questions, answers);
       finishProgress();
       setContent(data);
       setOpenHints(new Set());
@@ -137,21 +126,9 @@ export default function Home() {
     }
   }
 
-  async function exportToEpub() {
-    if (!content) return;
-    const res = await fetch("/api/epub", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(content),
-    });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${content.title.replace(/\s+/g, "-").toLowerCase()}.epub`;
-    a.click();
-    URL.revokeObjectURL(url);
+  function exportToEpub() {
+    // На статичном сайте EPUB недоступен — скачиваем HTML
+    exportToHtml();
   }
 
   function exportToHtml() {
