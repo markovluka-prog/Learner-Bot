@@ -34,7 +34,7 @@ export default function Chat({ topic, context }: Props) {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, topic, context }),
+        body: JSON.stringify({ question: q, topic, context, history: messages }),
       });
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", text: data.answer ?? "Не могу ответить." }]);
